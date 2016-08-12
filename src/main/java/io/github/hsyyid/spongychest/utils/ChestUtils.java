@@ -1,70 +1,42 @@
 package io.github.hsyyid.spongychest.utils;
 
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.tileentity.TileEntityChest;
+import org.spongepowered.api.block.tileentity.carrier.TileEntityCarrier;
+import org.spongepowered.api.item.inventory.Inventory;
+import org.spongepowered.api.item.inventory.ItemStack;
 import org.spongepowered.api.item.inventory.ItemStackSnapshot;
+
+import java.util.Optional;
 
 public class ChestUtils
 {
-	public static boolean containsItem(TileEntityChest chest, ItemStackSnapshot snapshot)
-	{
-		int foundItems = 0;
-		Item item = Item.getByNameOrId(snapshot.getType().getId());
 
-		if (item != null)
-		{
-			for (int i = 0; i < chest.getSizeInventory(); i++)
-			{
-				ItemStack stack = chest.getStackInSlot(i);
+	public static boolean containsItem(TileEntityCarrier entity,ItemStackSnapshot snapshot){
 
-				if (stack != null && stack.getItem().equals(item)) // TODO: Metadata && stack.getMetadata() == snapshot.)
-				{
-					foundItems += stack.stackSize;
-
-					if (foundItems >= snapshot.getCount())
-					{
-						return true;
-					}
+		int foundItems=0;
+		Inventory inventory=entity.getInventory();
+		Inventory slots=inventory.query(snapshot.getType());
+		for(Inventory slot:slots){
+			Optional<ItemStack> stack=slot.peek();
+			if(stack.isPresent()){
+				foundItems+=stack.get().getQuantity();
+				if(foundItems>=snapshot.getCount()){
+					return true;
 				}
 			}
 		}
-
 		return false;
 	}
 
-	public static void removeItems(TileEntityChest chest, ItemStackSnapshot snapshot)
-	{
-		int neededItems = snapshot.getCount();
-		int foundItems = 0;
-		Item item = Item.getByNameOrId(snapshot.getType().getId());
 
-		if (item != null)
-		{
-			for (int i = 0; i < chest.getSizeInventory(); i++)
-			{
-				ItemStack stack = chest.getStackInSlot(i);
-
-				if (stack != null && stack.getItem().equals(item)) // TODO: Metadata && stack.getMetadata() == snapshot.)
-				{
-					if (neededItems >= foundItems + stack.stackSize)
-					{
-						chest.removeStackFromSlot(i);
-						foundItems += stack.stackSize;
-					}
-					else
-					{
-						int amount = (foundItems + stack.stackSize) - neededItems;
-						stack.stackSize = amount;
-						foundItems = neededItems;
-					}
-				}
-
-				if (foundItems == neededItems)
-				{
-					return;
-				}
-			}
+	public static void removeItems(TileEntityCarrier chest,ItemStackSnapshot snapshot){
+		Inventory inventory=chest.getInventory();
+		Inventory slots=inventory.query(snapshot.getType());
+		int items=snapshot.getCount();
+		while(items>0){
+			Optional<ItemStack> result= slots.poll(items%snapshot.getType().getMaxStackQuantity());
+			items-=snapshot.getType().getMaxStackQuantity();
 		}
 	}
+
+
 }
